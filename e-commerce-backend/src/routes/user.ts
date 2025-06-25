@@ -10,4 +10,6 @@ app.get("/all", adminOnly, getAllUsers);
 
 app.route("/:id").get(getUser).delete(deleteUser);
 
+
+
 export default app;

@@ -1,6 +1,12 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import ProductCard from "../components/product-card";
+import { useCategoriesQuery, useSearchProductsQuery } from "../redux/api/productAPI";
+import type { CustomError } from "../types/api-types";
+import toast from "react-hot-toast";
+import { Skeleton } from "../components/loader";
+import { useDispatch } from "react-redux";
+import type { CartItem } from "../types/types";
+import { addToCart } from "../redux/reducer/cartReducer";
 
 const Search = () => {
     // const searchQuery = useSearchParams()[0];
@@ -11,12 +17,34 @@ const Search = () => {
     // const [category, setCategory] = useState(searchQuery.get("category") || "");
     const [page, setPage] = useState(1);
 
-    const addToCartHandler = (productId: string): void => {
-        // Logic to add the product to the cart
+    const dispatch = useDispatch();
+
+
+    const { data: categoriesResponse, isLoading: loadingCategories, isError, error } = useCategoriesQuery("");
+
+    const { isLoading: productLoading, data: searchedData, isError: productIsError, error: productError } = useSearchProductsQuery({ search, sort, category, page, price: maxPrice });
+
+
+    const addToCartHandler = (cartItem: CartItem) => {
+        if (cartItem.stock < 1) {
+            return toast.error("Out of Stock");
+        }
+
+        dispatch(addToCart(cartItem));
+        toast.success("Added to Cart");
     }
 
     const isPrevPage = page > 1;
     const isNextPage = page < 4;
+
+    if (isError) {
+        const err = error as CustomError;
+        toast.error(err.data.message);
+    }
+    if (productIsError) {
+        const err = productError as CustomError;
+        toast.error(err.data.message);
+    }
 
     return (
         <div
@@ -43,29 +71,42 @@ const Search = () => {
                     <h4>Category</h4>
                     <select value={category} onChange={(e) => setCategory(e.target.value)}>
                         <option value="">Select</option>
-                        <option value="">All</option>
-                        <option value="">Sample 1</option>
-                        <option value="">Sample 2</option>
+                        <option value="">ALL</option>
+                        {
+                            !loadingCategories && categoriesResponse?.categories.map((i) => (
+                                <option key={i} value={i}>{i.toUpperCase()}</option>
+                            ))
+                        }
                     </select>
                 </div>
             </aside>
             <main>
                 <h1>Products</h1>
                 <input type="text" placeholder="Search by name...." value={search} onChange={(e) => setSearch(e.target.value)} />
-                <div className="search-product-list">
-                    <ProductCard productId="dfaljdfa" name="Macbook" photos={"https://m.media-amazon.com/images/I/71jG+e7roXL._AC_UY218_.jpg"} price={1000} stock={10} handler={addToCartHandler} />
-                </div>
-                <article>
-                    <button
-                        disabled={!isPrevPage}
-                        onClick={() => setPage((prev) => Math.max(prev - 1))}
-                    >Prev</button>
-                    <span>{page} of {4}</span>
-                    <button
-                        disabled={!isNextPage}
-                        onClick={() => setPage((prev) => Math.max(prev + 1))}
-                    >Next</button>
-                </article>
+                {
+                    productLoading ? <Skeleton length={10} /> : <div className="search-product-list">
+                        {
+                            searchedData?.products.map((i) => (
+                                <ProductCard key={i._id} productId={i._id} name={i.name} photo={i.photo} price={i.price} stock={i.stock} handler={addToCartHandler} />
+                            ))
+                        }
+                    </div>
+                }
+                {
+                    searchedData && searchedData.totalPage > 1 && (
+                        <article>
+                            <button
+                                disabled={!isPrevPage}
+                                onClick={() => setPage((prev) => Math.max(prev - 1))}
+                            >Prev</button>
+                            <span>{page} of {searchedData.totalPage}</span>
+                            <button
+                                disabled={!isNextPage}
+                                onClick={() => setPage((prev) => Math.max(prev + 1))}
+                            >Next</button>
+                        </article>
+                    )
+                }
             </main>
         </div>
     )
