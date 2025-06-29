@@ -3,7 +3,6 @@ import TableHOC from "../components/admin/TableHOC"
 import type { Column } from "react-table";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
-import type { UserReducerInitialState } from "../types/reducer-types";
 import { useMyOrdersQuery } from "../redux/api/orderAPI";
 import type { CustomError } from "../types/api-types";
 import toast from "react-hot-toast";

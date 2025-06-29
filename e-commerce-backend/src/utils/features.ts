@@ -1,8 +1,72 @@
-import mongoose, { mongo } from "mongoose";
-import { InvalidateCacheProps, OrderItemType } from "../types/types.js";
+import { v2 as cloudinary } from 'cloudinary';
+import { Redis } from "ioredis";
+import mongoose from "mongoose";
+import { redis } from "../app.js";
 import { Product } from "../models/product.js";
-import { myCache } from "../app.js";
-import { Order } from "../models/order.js";
+import { InvalidateCacheProps, OrderItemType } from "../types/types.js";
+
+
+export const findAverageRatings = async (
+    productId: mongoose.Types.ObjectId
+) => {
+    let totalRating = 0;
+
+    const reviews = await Review.find({ product: productId });
+    reviews.forEach((review) => {
+        totalRating += review.rating;
+    });
+
+    const averateRating = Math.floor(totalRating / reviews.length) || 0;
+
+    return {
+        numOfReviews: reviews.length,
+        ratings: averateRating,
+    };
+};
+
+
+const getBase64 = (file: Express.Multer.File) =>
+    `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+
+export const uploadToCloudinary = async (files: Express.Multer.File[]) => {
+    const promises = files.map(async (file) => {
+        return new Promise<UploadApiResponse>((resolve, reject) => {
+            cloudinary.uploader.upload(getBase64(file), (error, result) => {
+                if (error) return reject(error);
+                resolve(result!);
+            });
+        });
+    });
+
+    const result = await Promise.all(promises);
+
+    return result.map((i) => ({
+        public_id: i.public_id,
+        url: i.secure_url,
+    }));
+};
+
+export const deleteFromCloudinary = async (publicIds: string[]) => {
+    const promises = publicIds.map((id) => {
+        return new Promise<void>((resolve, reject) => {
+            cloudinary.uploader.destroy(id, (error, result) => {
+                if (error) return reject(error);
+                resolve();
+            });
+        });
+    });
+
+    await Promise.all(promises);
+};
+
+export const connectRedis = (redisURI: string) => {
+    const redis = new Redis(redisURI);
+
+    redis.on("connect", () => console.log("Redis Connected"));
+    redis.on("error", (e) => console.log(e));
+    return redis;
+};
+
 
 export const connectDB = (uri: string) => {
     mongoose.connect(uri, {
@@ -11,46 +75,51 @@ export const connectDB = (uri: string) => {
         .catch(err => console.error("DB Connection Error:", err));
 }
 
-export const invalidateCache = ({
+export const invalidateCache = async ({
     product,
     order,
     admin,
+    review,
     userId,
     orderId,
-    productId
+    productId,
 }: InvalidateCacheProps) => {
+    if (review) {
+        await redis.del([`reviews-${productId}`]);
+    }
 
     if (product) {
         const productKeys: string[] = [
             "latest-products",
             "categories",
             "all-products",
-            `product-${productId}`
         ];
 
-        if (typeof productId === "string") {
-            productKeys.push(`product-${productId}`);
-        }
+        if (typeof productId === "string") productKeys.push(`product-${productId}`);
 
-        if (typeof productId === "object") {
-            productId.forEach((i) => productKeys.push(`product-${i}`))
-        }
+        if (typeof productId === "object")
+            productId.forEach((i) => productKeys.push(`product-${i}`));
 
-        myCache.del(productKeys);
+        await redis.del(productKeys);
     }
-
     if (order) {
-        const orderKeys: string[] = ["all-orders", `my-orders-${userId}`, `order-${orderId}`];
+        const ordersKeys: string[] = [
+            "all-orders",
+            `my-orders-${userId}`,
+            `order-${orderId}`,
+        ];
 
-        myCache.del(orderKeys);
-
+        await redis.del(ordersKeys);
     }
-
     if (admin) {
-        myCache.del(["admin-stats", "admin-pie-charts", "admin-bar-charts", "admin-line-charts"]);
+        await redis.del([
+            "admin-stats",
+            "admin-pie-charts",
+            "admin-bar-charts",
+            "admin-line-charts",
+        ]);
     }
-
-}
+};
 
 export const reduceStock = async (orderItems: OrderItemType[]) => {
     for (let i = 0; i < orderItems.length; i++) {
@@ -92,7 +161,9 @@ export const getInventories = async ({
     return categoryCount;
 };
 
+import { UploadApiResponse } from "cloudinary";
 import { Document as MongooseDocument } from "mongoose";
+import { Review } from "../models/review.js";
 interface MyDocument extends MongooseDocument {
     createdAt: Date;
     discount?: number;

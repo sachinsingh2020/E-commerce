@@ -12,7 +12,6 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useNewOrderMutation } from "../redux/api/orderAPI";
 import { responseToast } from "../utils/features";
 import type { NewOrderRequest } from "../types/api-types";
-import type { CartReducerInitialState, UserReducerInitialState } from "../types/reducer-types";
 import { resetCart } from "../redux/reducer/cartReducer";
 import type { RootState } from "../redux/store";
 
@@ -49,6 +48,7 @@ const CheckOutForm = () => {
         e.preventDefault();
 
         if (!stripe || !elements) return;
+        console.log("sachin");
         setIsProcessing(true);
 
         const orderData: NewOrderRequest = {
@@ -96,6 +96,10 @@ const Checkout = () => {
     const location = useLocation();
 
     const clientSecret: string | undefined = location.state;
+
+    if (clientSecret) {
+        console.log({ clientSecret });
+    }
 
     if (!clientSecret) return <Navigate to={"/shipping"} />;
 

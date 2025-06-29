@@ -1,0 +1,66 @@
+version: "3.8"
+services:
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: sachin
+    volumes:
+      - mongodb_data:/data/db
+
+  redis:
+    image: redis/redis-stack
+    container_name: redis
+    ports:
+      - 6379:6379
+      - 8001:8001
+
+  server:
+    build:
+      context: ./e-commerce-backend
+      dockerfile: Dockerfile.dev
+    container_name: server
+    ports:
+      - 4000:4000
+    env_file:
+      - ./e-commerce-backend/.env
+    environment:
+      - NODE_ENV=development
+      - MONGO_URI=mongodb://admin:sachin@mongodb
+      - REDIS_URI=redis://redis
+    depends_on:
+      - mongodb
+      - redis
+    develop:
+      watch:
+        - path: ./e-commerce-backend/package*.json
+          action: rebuild
+        - path: ./e-commerce-backend
+          target: /app
+          action: sync
+
+  client:
+    build:
+      context: ./e-commerce-frontend
+      dockerfile: Dockerfile.dev
+    container_name: client
+    ports:
+      - 5173:5173
+    env_file:
+      - ./e-commerce-frontend/.env
+    depends_on:
+      - server
+    develop:
+      watch:
+        - path: ./e-commerce-frontend/package*.json
+          action: rebuild
+        - path: ./e-commerce-frontend
+          target: /app
+          action: sync
+
+volumes:
+  mongodb_data:
+    driver: local

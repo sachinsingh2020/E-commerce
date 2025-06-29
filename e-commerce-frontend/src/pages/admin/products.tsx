@@ -1,16 +1,15 @@
 import { type ReactElement, useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { FaPlus } from "react-icons/fa";
+import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { type Column } from "react-table";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import TableHOC from "../../components/admin/TableHOC";
-import { useAllProductsQuery } from "../../redux/api/productAPI";
-import type { CustomError } from "../../types/api-types";
-import toast from "react-hot-toast";
-import { useSelector } from "react-redux";
-import type { UserReducerInitialState } from "../../types/reducer-types";
 import { Skeleton } from "../../components/loader";
-import { server, type RootState } from "../../redux/store";
+import { useAllProductsQuery } from "../../redux/api/productAPI";
+import { type RootState } from "../../redux/store";
+import { type CustomError } from "../../types/api-types";
 
 interface DataType {
   photo: ReactElement;
@@ -47,21 +46,19 @@ const Products = () => {
   const { user } = useSelector((state: RootState) => state.userReducer);
 
   const { isLoading, isError, error, data } = useAllProductsQuery(user?._id!);
-  const [rows, setRows] = useState<DataType[]>([]);
 
-  console.log({ data });
+  const [rows, setRows] = useState<DataType[]>([]);
 
   if (isError) {
     const err = error as CustomError;
     toast.error(err.data.message);
   }
 
-
   useEffect(() => {
     if (data)
       setRows(
         data.products.map((i) => ({
-          photo: <img src={`${server}/${i.photo}`} />,
+          photo: <img src={i.photos?.[0]?.url} />,
           name: i.name,
           price: i.price,
           stock: i.stock,

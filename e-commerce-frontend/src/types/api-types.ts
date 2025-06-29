@@ -1,5 +1,5 @@
 
-import type { Bar, CartItem, Line, Order, Pie, Product, ShippingInfo, Stats, User } from "./types";
+import type { Bar, CartItem, CouponType, Line, Order, Pie, Product, Review, ShippingInfo, Stats, User } from "./types";
 
 export type CustomError = {
     status: number;
@@ -29,10 +29,10 @@ export type AllProductsResponse = {
     products: Product[];
 };
 
-// export type AllReviewsResponse = {
-//   success: boolean;
-//   reviews: Review[];
-// };
+export type AllReviewsResponse = {
+    success: boolean;
+    reviews: Review[];
+};
 
 export type CategoriesResponse = {
     success: boolean;
@@ -86,17 +86,17 @@ export type LineResponse = {
     charts: Line;
 };
 
-// export type NewReviewRequest = {
-//   rating: number;
-//   comment: string;
-//   userId?: string;
-//   productId: string;
-// };
+export type NewReviewRequest = {
+    rating: number;
+    comment: string;
+    userId?: string;
+    productId: string;
+};
 
-// export type DeleteReviewRequest = {
-//   userId?: string;
-//   reviewId: string;
-// };
+export type DeleteReviewRequest = {
+    userId?: string;
+    reviewId: string;
+};
 
 export type NewProductRequest = {
     id: string;
@@ -136,12 +136,12 @@ export type DeleteUserRequest = {
     adminUserId: string;
 };
 
-// export type AllDiscountResponse = {
-//   success: boolean;
-//   coupons: CouponType[];
-// };
+export type AllDiscountResponse = {
+    success: boolean;
+    coupons: CouponType[];
+};
 
-// export type SingleDiscountResponse = {
-//   success: boolean;
-//   coupon: CouponType;
-// };
+export type SingleDiscountResponse = {
+    success: boolean;
+    coupon: CouponType;
+};

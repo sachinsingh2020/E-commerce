@@ -1,9 +1,8 @@
-import React from 'react'
 
 const OrderDetails = () => {
     return (
         <div>
-
+            this is order detail page
         </div>
     )
 }

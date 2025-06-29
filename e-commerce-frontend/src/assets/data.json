@@ -4,6 +4,7 @@
       "value": 40,
       "heading": "Laptops"
     },
+
     {
       "value": 100,
       "heading": "Shoes"
@@ -17,6 +18,7 @@
       "heading": "Jeans"
     }
   ],
+
   "transaction": [
     {
       "_id": "ksdnfkjsdfx",

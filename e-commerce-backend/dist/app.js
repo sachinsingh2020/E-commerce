@@ -1,11 +1,11 @@
 import express from 'express';
-import { connectDB } from './utils/features.js';
+import { connectDB, connectRedis } from './utils/features.js';
 import { errorMiddleware } from './middlewares/error.js';
-import NodeCache from 'node-cache';
 import { config } from "dotenv";
 import morgan from 'morgan';
 import Stripe from 'stripe';
 import cors from 'cors';
+import { v2 as cloudinary } from 'cloudinary';
 import userRoute from "./routes/user.js";
 import productRoute from "./routes/product.js";
 import orderRoute from "./routes/order.js";
@@ -18,21 +18,13 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
-// Setup CORS to handle multiple origins
-const allowedOrigins = [process.env.FRONTEND_URL, "http://localhost:5173"];
+// Setup CORS to handle multiple origin
 app.use(cors({
-    origin: function (origin, callback) {
-        // Allow requests with no origin (e.g., mobile apps, curl requests)
-        if (!origin)
-            return callback(null, true);
-        if (allowedOrigins.indexOf(origin) === -1) {
-            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-            return callback(new Error(msg), false);
-        }
-        return callback(null, true);
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    origin: true, // reflect the request Origin, i.e. allow all
+    credentials: true, // allow cookies, Authorization headers, etc.
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 204,
 }));
 app.get("/", (req, res) => {
     res.send("Server is Working");
@@ -40,9 +32,16 @@ app.get("/", (req, res) => {
 const port = process.env.PORT || 4000;
 const mongoURI = process.env.MONGO_URI;
 const stripeKey = process.env.STRIPE_KEY;
+const redisURI = process.env.REDIS_URI;
+export const redisTTL = process.env.REDIS_TTL || 60 * 60 * 4;
 connectDB(mongoURI);
+export const redis = connectRedis(redisURI);
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLIENT_NAME,
+    api_key: process.env.CLOUDINARY_CLIENT_API,
+    api_secret: process.env.CLOUDINARY_CLIENT_SECRET,
+});
 export const stripe = new Stripe(stripeKey);
-export const myCache = new NodeCache();
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/product", productRoute);
 app.use("/api/v1/order", orderRoute);
